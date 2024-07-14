@@ -23,14 +23,16 @@ read_image_from_url <- function(url, ext) {
 
 #* @post /upload
 #* @param image_url: string
-#* @param panel_size: string
+#* @param panels: string
 #* @param image_ext: string
+#* @param panel_size: string
 #* @response 200 Returns the LEGO mosaic pieces table and image in base64
-function(image_url, panel_size, image_ext) {
+function(image_url, panels, image_ext, panel_size) {
   # Debug message for received parameters
   print(paste("Received image_url:", image_url))
-  print(paste("Received panel_size:", panel_size))
+  print(paste("Received panels:", panels))
   print(paste("Received image_ext:", image_ext))
+  print(paste("Received panel_size:", panel_size))
 
   # Read the image from URL
   img <- tryCatch(
@@ -49,13 +51,13 @@ function(image_url, panel_size, image_ext) {
 
   # Determine if the image is square or rectangular
   if (img_width == img_height) {
-    img_size <- 36 * as.integer(panel_size)
+    img_size <- as.integer(panel_size) * as.integer(panels)
   } else {
     # Calculate img_size based on the aspect ratio
     if (img_width > img_height) {
-      img_size <- c(36 * as.integer(panel_size), round((36 * as.integer(panel_size)) * (img_height / img_width)))
+      img_size <- c(as.integer(panel_size) * as.integer(panels), round((as.integer(panel_size) * as.integer(panels)) * (img_height / img_width)))
     } else {
-      img_size <- c(round((36 * as.integer(panel_size)) * (img_width / img_height)), 36 * as.integer(panel_size))
+      img_size <- c(round((as.integer(panel_size) * as.integer(panels)) * (img_width / img_height)), as.integer(panel_size) * as.integer(panels))
     }
   }
 
