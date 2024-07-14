@@ -1,5 +1,5 @@
-# Use the rocker/r-ver base image
-FROM rocker/r-ver:4.3.0
+# Use the rocker/r-ver base image with R 4.4.1
+FROM rocker/r-ver:4.4.1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -7,14 +7,20 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libxml2-dev \
     libjpeg-dev \
-    libpng-dev
+    libpng-dev \
+    build-essential \
+    cmake \
+    libmagick++-dev
 
-# Install R packages
-RUN R -e "install.packages(c('plumber', 'brickr', 'png', 'jpeg', 'magrittr', 'base64enc', 'ggplot2'), repos='http://cran.rstudio.com/')"
+# Install R packages from CRAN
+RUN install2.r plumber png jpeg magrittr base64enc ggplot2 remotes magick
+
+# Install brickr from GitHub
+RUN R -e "remotes::install_github('ryantimpe/brickr')"
 
 # Copy plumber script
-COPY plumber.R /app/plumber.R
-COPY run_server.R /app/run_server.R
+COPY lego.r /app/lego.r
+COPY run_server.r /app/run_server.r
 
 # Set the working directory
 WORKDIR /app
@@ -23,4 +29,4 @@ WORKDIR /app
 EXPOSE 8000
 
 # Run the plumber API
-CMD ["Rscript", "run_server.R"]
+CMD ["Rscript", "run_server.r"]
