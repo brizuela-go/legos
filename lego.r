@@ -49,20 +49,23 @@ function(image_url, panels, image_ext, panel_size) {
   img_height <- dim(img)[1]
   print(paste("Image dimensions - Width:", img_width, "Height:", img_height))
 
-  # Determine if the image is square or rectangular
-  if (img_width == img_height) {
-    img_size <- as.integer(panel_size) * as.integer(panels)
+  # Calculate the total number of bricks
+  panel_size <- as.integer(panel_size)
+  panels <- as.integer(panels)
+  total_bricks <- panels * (panel_size^2)
+
+  # Calculate the root square of the total number of bricks
+  root_bricks <- sqrt(total_bricks)
+
+  # Adjust image size based on the aspect ratio
+  img_size <- if (img_width >= img_height) {
+    c(root_bricks, round(root_bricks * (img_height / img_width)))
   } else {
-    # Calculate img_size based on the aspect ratio
-    if (img_width > img_height) {
-      img_size <- c(as.integer(panel_size) * as.integer(panels), round((as.integer(panel_size) * as.integer(panels)) * (img_height / img_width)))
-    } else {
-      img_size <- c(round((as.integer(panel_size) * as.integer(panels)) * (img_width / img_height)), as.integer(panel_size) * as.integer(panels))
-    }
+    c(round(root_bricks * (img_width / img_height)), root_bricks)
   }
 
   # Print debug info for img_size
-  print(paste("Generated img_size:", img_size))
+  print(paste("Generated img_size:", paste(img_size, collapse = "x")))
 
   # Generate mosaic
   mosaic <- tryCatch(
@@ -77,20 +80,40 @@ function(image_url, panels, image_ext, panel_size) {
   # Save the generated mosaic image to a file
   mosaic_file <- tempfile(fileext = ".png")
   ggplot_mosaic <- mosaic %>% build_mosaic()
+
+
+
+  # Add panel lines to the mosaic plot if panels > 1
+  if (panels > 1) {
+    center_x <- img_size[1] / 2
+    center_y <- img_size[2] / 2
+
+    # Calculate the range for x and y lines, ensuring they extend to the edges
+    x_lines <- seq(-floor(center_x / panel_size) * panel_size, ceiling(center_x / panel_size) * panel_size, by = panel_size) + center_x
+    y_lines <- seq(-floor(center_y / panel_size) * panel_size, ceiling(center_y / panel_size) * panel_size, by = panel_size) + center_y
+
+    # Adjust lines to ensure they stay within the image boundaries
+    x_lines <- x_lines[x_lines >= 0 & x_lines <= img_size[1]]
+    y_lines <- y_lines[y_lines >= 0 & y_lines <= img_size[2]]
+
+    ggplot_mosaic <- ggplot_mosaic +
+      geom_hline(yintercept = y_lines, color = "white") +
+      geom_vline(xintercept = x_lines, color = "white")
+  }
+
   ggsave(mosaic_file, ggplot_mosaic)
 
+
+  # Generate and save instructions image
   instructions_file <- tempfile(fileext = ".png")
   ggplot_instructions <- mosaic %>% build_instructions()
   ggsave(instructions_file, ggplot_instructions)
-
 
   # Encode the mosaic image to base64
   mosaic_base64 <- base64enc::base64encode(mosaic_file)
 
   # Encode the instructions image to base64
   instructions_base64 <- base64enc::base64encode(instructions_file)
-
-
 
   # Build pieces table
   pieces_table <- tryCatch(
