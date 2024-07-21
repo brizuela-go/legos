@@ -61,15 +61,15 @@ function(image_url, panels, image_ext, panel_size, aspect_ratio) {
   aspect_ratio_width <- as.numeric(aspect_ratio_split[1])
   aspect_ratio_height <- as.numeric(aspect_ratio_split[2])
 
-  # Calculate the root square of the total number of bricks
-  root_bricks <- sqrt(total_bricks)
+  # Determine panel dimensions based on the aspect ratio
+  aspect_ratio_width_to_height <- aspect_ratio_width / aspect_ratio_height
 
-  # Adjust image size based on the aspect ratio
-  img_size <- if (aspect_ratio_width >= aspect_ratio_height) {
-    c(root_bricks, round(root_bricks * (aspect_ratio_height / aspect_ratio_width)))
-  } else {
-    c(round(root_bricks * (aspect_ratio_width / aspect_ratio_height)), root_bricks)
-  }
+  # Determine the number of panels horizontally and vertically
+  num_panels_width <- ceiling(sqrt(panels * aspect_ratio_width_to_height))
+  num_panels_height <- ceiling(panels / num_panels_width)
+
+  # Adjust the size of the mosaic image
+  img_size <- c(num_panels_width * panel_size, num_panels_height * panel_size)
 
   # Print debug info for img_size
   print(paste("Generated img_size:", paste(img_size, collapse = "x")))
@@ -90,8 +90,8 @@ function(image_url, panels, image_ext, panel_size, aspect_ratio) {
 
   # Add panel lines to the mosaic plot if panels > 1
   if (panels > 1) {
-    panel_width <- img_size[1] / sqrt(panels)
-    panel_height <- img_size[2] / sqrt(panels)
+    panel_width <- img_size[1] / num_panels_width
+    panel_height <- img_size[2] / num_panels_height
 
     # Calculate the range for x and y lines, ensuring they extend to the edges
     x_lines <- seq(0, img_size[1], by = panel_width)
@@ -132,7 +132,6 @@ function(image_url, panels, image_ext, panel_size, aspect_ratio) {
     instructions_image_base64 = instructions_base64
   )
 }
-
 
 # Enable CORS
 #* @filter cors
