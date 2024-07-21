@@ -26,13 +26,15 @@ read_image_from_url <- function(url, ext) {
 #* @param panels: string
 #* @param image_ext: string
 #* @param panel_size: string
+#* @param aspect_ratio: string
 #* @response 200 Returns the LEGO mosaic pieces table and image in base64
-function(image_url, panels, image_ext, panel_size) {
+function(image_url, panels, image_ext, panel_size, aspect_ratio) {
   # Debug message for received parameters
   print(paste("Received image_url:", image_url))
   print(paste("Received panels:", panels))
   print(paste("Received image_ext:", image_ext))
   print(paste("Received panel_size:", panel_size))
+  print(paste("Received aspect_ratio:", aspect_ratio))
 
   # Read the image from URL
   img <- tryCatch(
@@ -54,14 +56,19 @@ function(image_url, panels, image_ext, panel_size) {
   panels <- as.integer(panels)
   total_bricks <- panels * (panel_size^2)
 
+  # Parse the aspect ratio
+  aspect_ratio_split <- strsplit(aspect_ratio, "/")[[1]]
+  aspect_ratio_width <- as.numeric(aspect_ratio_split[1])
+  aspect_ratio_height <- as.numeric(aspect_ratio_split[2])
+
   # Calculate the root square of the total number of bricks
   root_bricks <- sqrt(total_bricks)
 
   # Adjust image size based on the aspect ratio
-  img_size <- if (img_width >= img_height) {
-    c(root_bricks, round(root_bricks * (img_height / img_width)))
+  img_size <- if (aspect_ratio_width >= aspect_ratio_height) {
+    c(root_bricks, round(root_bricks * (aspect_ratio_height / aspect_ratio_width)))
   } else {
-    c(round(root_bricks * (img_width / img_height)), root_bricks)
+    c(round(root_bricks * (aspect_ratio_width / aspect_ratio_height)), root_bricks)
   }
 
   # Print debug info for img_size
@@ -81,20 +88,14 @@ function(image_url, panels, image_ext, panel_size) {
   mosaic_file <- tempfile(fileext = ".png")
   ggplot_mosaic <- mosaic %>% build_mosaic()
 
-
-
   # Add panel lines to the mosaic plot if panels > 1
   if (panels > 1) {
-    center_x <- img_size[1] / 2
-    center_y <- img_size[2] / 2
+    panel_width <- img_size[1] / sqrt(panels)
+    panel_height <- img_size[2] / sqrt(panels)
 
     # Calculate the range for x and y lines, ensuring they extend to the edges
-    x_lines <- seq(-floor(center_x / panel_size) * panel_size, ceiling(center_x / panel_size) * panel_size, by = panel_size) + center_x
-    y_lines <- seq(-floor(center_y / panel_size) * panel_size, ceiling(center_y / panel_size) * panel_size, by = panel_size) + center_y
-
-    # Adjust lines to ensure they stay within the image boundaries
-    x_lines <- x_lines[x_lines >= 0 & x_lines <= img_size[1]]
-    y_lines <- y_lines[y_lines >= 0 & y_lines <= img_size[2]]
+    x_lines <- seq(0, img_size[1], by = panel_width)
+    y_lines <- seq(0, img_size[2], by = panel_height)
 
     ggplot_mosaic <- ggplot_mosaic +
       geom_hline(yintercept = y_lines, color = "white") +
@@ -102,7 +103,6 @@ function(image_url, panels, image_ext, panel_size) {
   }
 
   ggsave(mosaic_file, ggplot_mosaic)
-
 
   # Generate and save instructions image
   instructions_file <- tempfile(fileext = ".png")
@@ -132,6 +132,7 @@ function(image_url, panels, image_ext, panel_size) {
     instructions_image_base64 = instructions_base64
   )
 }
+
 
 # Enable CORS
 #* @filter cors
